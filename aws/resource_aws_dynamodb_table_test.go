@@ -13,6 +13,164 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestDiffDynamoDbGSI(t *testing.T) {
+	testCases := []struct {
+		Old             []interface{}
+		New             []interface{}
+		ExpectedUpdates []*dynamodb.GlobalSecondaryIndexUpdate
+	}{
+		{ // No-op
+			Old: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+			},
+			New: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+			},
+			ExpectedUpdates: []*dynamodb.GlobalSecondaryIndexUpdate{},
+		},
+
+		{ // Creation
+			Old: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+			},
+			New: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+				map[string]interface{}{
+					"name":            "att2-index",
+					"hash_key":        "att2",
+					"write_capacity":  12,
+					"read_capacity":   11,
+					"projection_type": "ALL",
+				},
+			},
+			ExpectedUpdates: []*dynamodb.GlobalSecondaryIndexUpdate{
+				{
+					Create: &dynamodb.CreateGlobalSecondaryIndexAction{
+						IndexName: aws.String("att2-index"),
+						KeySchema: []*dynamodb.KeySchemaElement{
+							{
+								AttributeName: aws.String("att2"),
+								KeyType:       aws.String("HASH"),
+							},
+						},
+						ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+							WriteCapacityUnits: aws.Int64(12),
+							ReadCapacityUnits:  aws.Int64(11),
+						},
+						Projection: &dynamodb.Projection{
+							ProjectionType: aws.String("ALL"),
+						},
+					},
+				},
+			},
+		},
+
+		{ // Deletion
+			Old: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+				map[string]interface{}{
+					"name":            "att2-index",
+					"hash_key":        "att2",
+					"write_capacity":  12,
+					"read_capacity":   11,
+					"projection_type": "ALL",
+				},
+			},
+			New: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+			},
+			ExpectedUpdates: []*dynamodb.GlobalSecondaryIndexUpdate{
+				{
+					Delete: &dynamodb.DeleteGlobalSecondaryIndexAction{
+						IndexName: aws.String("att2-index"),
+					},
+				},
+			},
+		},
+
+		{ // Update
+			Old: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  10,
+					"read_capacity":   10,
+					"projection_type": "ALL",
+				},
+			},
+			New: []interface{}{
+				map[string]interface{}{
+					"name":            "att1-index",
+					"hash_key":        "att1",
+					"write_capacity":  20,
+					"read_capacity":   30,
+					"projection_type": "ALL",
+				},
+			},
+			ExpectedUpdates: []*dynamodb.GlobalSecondaryIndexUpdate{
+				{
+					Update: &dynamodb.UpdateGlobalSecondaryIndexAction{
+						IndexName: aws.String("att1-index"),
+						ProvisionedThroughput: &dynamodb.ProvisionedThroughput{
+							WriteCapacityUnits: aws.Int64(20),
+							ReadCapacityUnits:  aws.Int64(30),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		ops := diffDynamoDbGSI(tc.Old, tc.New)
+
+		// Convert to strings to avoid dealing with pointers
+		opsS := fmt.Sprintf("%v", ops)
+		opsExpectedS := fmt.Sprintf("%v", tc.ExpectedUpdates)
+
+		if opsS != opsExpectedS {
+			t.Fatalf("Case #%d: Given:\n%s\n\nExpected:\n%s",
+				i, opsS, opsExpectedS)
+		}
+	}
+}
+
 func TestAccAWSDynamoDbTable_basic(t *testing.T) {
 	var conf dynamodb.DescribeTableOutput
 
