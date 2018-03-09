@@ -8,13 +8,32 @@ FEATURES:
 
 ENHANCEMENTS:
 
+* resource/aws_api_gateway_authorizer: Support COGNITO_USER_POOLS type [GH-3156]
+* resource/aws_cloud9_environment_ec2: Retry creation for IAM eventual consistency [GH-3651]
+* resource/aws_cloudfront_distribution: Make `default_ttl`, `max_ttl`, and `min_ttl` arguments optional [GH-3571]
 * resource/aws_dms_endpoint: Add aurora-postgresql as a target [GH-2615]
+* resource/aws_dynamodb_table: Support Server Side Encryption [GH-3303]
 * resource/aws_elastic_beanstalk_environment: Support modifying `tags` [GH-3513]
+* resource/aws_emr_cluster: Add Kerberos support [GH-3553]
+* resource/aws_iam_account_alias: Improve error messages to include API errors [GH-3590]
 * resource/aws_iam_user_policy: Add support for import [GH-3198]
+* resource/aws_lb: Add `enable_cross_zone_load_balancing` argument for NLBs [GH-3537]
+* resource/aws_lb: Add `enable_http2` argument for ALBs [GH-3609]
+* resource/aws_route: Add configurable timeouts [GH-3639]
+* resource/aws_security_group: Add configurable timeouts [GH-3599]
+* resource/aws_spot_fleet_request: Add `load_balancers` and `target_group_arns` arguments [GH-2564]
+* resource/aws_ssm_parameter: Add `allowed_pattern`, `description`, and `tags` arguments [GH-1520]
+* resource/aws_ssm_parameter: Allow `key_id` updates [GH-1520]
 
 BUG FIXES:
 
+* data-source/aws_db_instance: Prevent crash with EC2 Classic [GH-3619]
+* data-source/aws_vpc_endpoint_service: Fix aws-us-gov partition handling [GH-3514]
 * resource/aws_api_gateway_vpc_link: Ensure `target_arns` is properly read [GH-3569]
+* resource/aws_batch_compute_environment: Fix `state` updates [GH-3508]
+* resource/aws_ebs_snapshot: Prevent crash with outside snapshot deletion [GH-3462]
+* resource/aws_eip_association: Prevent deletion error InvalidAssociationID.NotFound [GH-3653]
+* resource/aws_lambda_function: Allow PutFunctionConcurrency retries on creation [GH-3570]
 * resource/aws_spot_instance_request: Retry for 1 minute instead of 15 seconds for IAM eventual consistency [GH-3561]
 * resource/aws_ssm_activation: Prevent crash with expiration_date [GH-3597]
 

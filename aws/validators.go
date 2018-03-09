@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/apigateway"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/configservice"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/gamelift"
@@ -20,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
+	"github.com/hashicorp/terraform/helper/validation"
 )
 
 // When released, replace all usage with upstream validation function:
@@ -189,26 +191,6 @@ func validateDbParamGroupNamePrefix(v interface{}, k string) (ws []string, error
 	return
 }
 
-func validateStreamViewType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	if value == "" {
-		return
-	}
-
-	viewTypes := map[string]bool{
-		"KEYS_ONLY":          true,
-		"NEW_IMAGE":          true,
-		"OLD_IMAGE":          true,
-		"NEW_AND_OLD_IMAGES": true,
-	}
-
-	if !viewTypes[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid DynamoDB StreamViewType", k))
-	}
-	return
-}
-
 func validateDynamoAttributeType(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	validTypes := []string{
@@ -342,14 +324,7 @@ func validateCloudWatchLogResourcePolicyDocument(v interface{}, k string) (ws []
 }
 
 func validateMaxLength(length int) schema.SchemaValidateFunc {
-	return func(v interface{}, k string) (ws []string, errors []error) {
-		value := v.(string)
-		if len(value) > length {
-			errors = append(errors, fmt.Errorf(
-				"%q cannot be longer than %d characters: %q", k, length, value))
-		}
-		return
-	}
+	return validation.StringLenBetween(0, length)
 }
 
 func validateIntegerInRange(min, max int) schema.SchemaValidateFunc {
@@ -503,26 +478,17 @@ func validateCIDRNetworkAddress(v interface{}, k string) (ws []string, errors []
 	return
 }
 
-func validateHTTPMethod(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validMethods := map[string]bool{
-		"ANY":     true,
-		"DELETE":  true,
-		"GET":     true,
-		"HEAD":    true,
-		"OPTIONS": true,
-		"PATCH":   true,
-		"POST":    true,
-		"PUT":     true,
-	}
-
-	if _, ok := validMethods[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid method %q. Valid methods are either %q, %q, %q, %q, %q, %q, %q, or %q.",
-			k, value, "ANY", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"))
-	}
-	return
+func validateHTTPMethod() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"ANY",
+		"DELETE",
+		"GET",
+		"HEAD",
+		"OPTIONS",
+		"PATCH",
+		"POST",
+		"PUT",
+	}, false)
 }
 
 func validateLogMetricFilterName(v interface{}, k string) (ws []string, errors []error) {
@@ -715,15 +681,6 @@ func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, erro
 	return
 }
 
-func validateApiGatewayIntegrationPassthroughBehavior(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != "WHEN_NO_MATCH" && value != "WHEN_NO_TEMPLATES" && value != "NEVER" {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of 'WHEN_NO_MATCH', 'WHEN_NO_TEMPLATES', 'NEVER'", k))
-	}
-	return
-}
-
 func validateJsonString(v interface{}, k string) (ws []string, errors []error) {
 	if _, err := structure.NormalizeJsonString(v); err != nil {
 		errors = append(errors, fmt.Errorf("%q contains an invalid JSON: %s", k, err))
@@ -761,39 +718,11 @@ func validateCloudFormationTemplate(v interface{}, k string) (ws []string, error
 	return
 }
 
-func validateApiGatewayIntegrationType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validTypes := map[string]bool{
-		"AWS":        true,
-		"AWS_PROXY":  true,
-		"HTTP":       true,
-		"HTTP_PROXY": true,
-		"MOCK":       true,
-	}
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid integration type %q. Valid types are either %q, %q, %q, %q, or %q.",
-			k, value, "AWS", "AWS_PROXY", "HTTP", "HTTP_PROXY", "MOCK"))
-	}
-	return
-}
-
-func validateApiGatewayIntegrationContentHandling(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validTypes := map[string]bool{
-		"CONVERT_TO_BINARY": true,
-		"CONVERT_TO_TEXT":   true,
-	}
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid integration type %q. Valid types are either %q or %q.",
-			k, value, "CONVERT_TO_BINARY", "CONVERT_TO_TEXT"))
-	}
-	return
+func validateApiGatewayIntegrationContentHandling() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		apigateway.ContentHandlingStrategyConvertToBinary,
+		apigateway.ContentHandlingStrategyConvertToText,
+	}, false)
 }
 
 func validateSQSQueueName(v interface{}, k string) (ws []string, errors []error) {
@@ -1146,70 +1075,14 @@ func validateDmsReplicationTaskId(v interface{}, k string) (ws []string, es []er
 	return
 }
 
-func validateAppautoscalingCustomizedMetricSpecificationStatistic(v interface{}, k string) (ws []string, errors []error) {
-	validStatistic := []string{
-		"Average",
-		"Minimum",
-		"Maximum",
-		"SampleCount",
-		"Sum",
-	}
-	statistic := v.(string)
-	for _, o := range validStatistic {
-		if statistic == o {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid statistic %q. Valid statistic are %q.",
-		k, statistic, validStatistic))
-	return
-}
-
-func validateAppautoscalingPredefinedResourceLabel(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 1023 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be greater than 1023 characters", k))
-	}
-	return
-}
-
-func validateConfigRuleSourceOwner(v interface{}, k string) (ws []string, errors []error) {
-	validOwners := []string{
-		"CUSTOM_LAMBDA",
-		"AWS",
-	}
-	owner := v.(string)
-	for _, o := range validOwners {
-		if owner == o {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid owner %q. Valid owners are %q.",
-		k, owner, validOwners))
-	return
-}
-
-func validateConfigExecutionFrequency(v interface{}, k string) (ws []string, errors []error) {
-	validFrequencies := []string{
-		"One_Hour",
-		"Three_Hours",
-		"Six_Hours",
-		"Twelve_Hours",
-		"TwentyFour_Hours",
-	}
-	frequency := v.(string)
-	for _, f := range validFrequencies {
-		if frequency == f {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid frequency %q. Valid frequencies are %q.",
-		k, frequency, validFrequencies))
-	return
+func validateConfigExecutionFrequency() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		configservice.MaximumExecutionFrequencyOneHour,
+		configservice.MaximumExecutionFrequencyThreeHours,
+		configservice.MaximumExecutionFrequencySixHours,
+		configservice.MaximumExecutionFrequencyTwelveHours,
+		configservice.MaximumExecutionFrequencyTwentyFourHours,
+	}, false)
 }
 
 func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
@@ -1226,19 +1099,6 @@ func validateAccountAlias(v interface{}, k string) (ws []string, es []error) {
 	}
 	if strings.HasSuffix(val, "-") {
 		es = append(es, fmt.Errorf("%q must not end in a hyphen", k))
-	}
-	return
-}
-
-func validateApiGatewayApiKeyValue(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) < 30 {
-		errors = append(errors, fmt.Errorf(
-			"%q must be at least 30 characters long", k))
-	}
-	if len(value) > 128 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be longer than 128 characters", k))
 	}
 	return
 }
@@ -1265,24 +1125,6 @@ func validateIamRolePolicyNamePrefix(v interface{}, k string) (ws []string, erro
 	if !regexp.MustCompile("^[\\w+=,.@-]+$").MatchString(value) {
 		errors = append(errors, fmt.Errorf("%q must match [\\w+=,.@-]", k))
 	}
-	return
-}
-
-func validateApiGatewayUsagePlanQuotaSettingsPeriod(v interface{}, k string) (ws []string, errors []error) {
-	validPeriods := []string{
-		apigateway.QuotaPeriodTypeDay,
-		apigateway.QuotaPeriodTypeWeek,
-		apigateway.QuotaPeriodTypeMonth,
-	}
-	period := v.(string)
-	for _, f := range validPeriods {
-		if period == f {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid period %q. Valid period are %q.",
-		k, period, validPeriods))
 	return
 }
 
@@ -1551,21 +1393,6 @@ func validateCognitoUserPoolId(v interface{}, k string) (ws []string, es []error
 	return
 }
 
-func validateCognitoUserPoolMfaConfiguration(v interface{}, k string) (ws []string, es []error) {
-	value := v.(string)
-
-	valid := map[string]bool{
-		cognitoidentityprovider.UserPoolMfaTypeOff:      true,
-		cognitoidentityprovider.UserPoolMfaTypeOn:       true,
-		cognitoidentityprovider.UserPoolMfaTypeOptional: true,
-	}
-	if !valid[value] {
-		es = append(es, fmt.Errorf(
-			"%q must be equal to OFF, ON, or OPTIONAL", k))
-	}
-	return
-}
-
 func validateCognitoUserPoolSmsAuthenticationMessage(v interface{}, k string) (ws []string, es []error) {
 	value := v.(string)
 	if len(value) < 6 {
@@ -1598,41 +1425,6 @@ func validateCognitoUserPoolSmsVerificationMessage(v interface{}, k string) (ws 
 	return
 }
 
-func validateCognitoUserPoolAliasAttribute(v interface{}, k string) (ws []string, es []error) {
-	validValues := []string{
-		cognitoidentityprovider.AliasAttributeTypeEmail,
-		cognitoidentityprovider.AliasAttributeTypePhoneNumber,
-		cognitoidentityprovider.AliasAttributeTypePreferredUsername,
-	}
-	period := v.(string)
-	for _, f := range validValues {
-		if period == f {
-			return
-		}
-	}
-	es = append(es, fmt.Errorf(
-		"%q contains an invalid alias attribute %q. Valid alias attributes are %q.",
-		k, period, validValues))
-	return
-}
-
-func validateCognitoUserPoolAutoVerifiedAttribute(v interface{}, k string) (ws []string, es []error) {
-	validValues := []string{
-		cognitoidentityprovider.VerifiedAttributeTypePhoneNumber,
-		cognitoidentityprovider.VerifiedAttributeTypeEmail,
-	}
-	period := v.(string)
-	for _, f := range validValues {
-		if period == f {
-			return
-		}
-	}
-	es = append(es, fmt.Errorf(
-		"%q contains an invalid verified attribute %q. Valid verified attributes are %q.",
-		k, period, validValues))
-	return
-}
-
 func validateCognitoUserPoolClientAuthFlows(v interface{}, k string) (ws []string, es []error) {
 	validValues := []string{
 		cognitoidentityprovider.AuthFlowTypeAdminNoSrpAuth,
@@ -1646,23 +1438,6 @@ func validateCognitoUserPoolClientAuthFlows(v interface{}, k string) (ws []strin
 	}
 	es = append(es, fmt.Errorf(
 		"%q contains an invalid auth flow %q. Valid auth flows are %q.",
-		k, period, validValues))
-	return
-}
-
-func validateCognitoUserPoolTemplateDefaultEmailOption(v interface{}, k string) (ws []string, es []error) {
-	validValues := []string{
-		cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithLink,
-		cognitoidentityprovider.DefaultEmailOptionTypeConfirmWithCode,
-	}
-	period := v.(string)
-	for _, f := range validValues {
-		if period == f {
-			return
-		}
-	}
-	es = append(es, fmt.Errorf(
-		"%q contains an invalid template default email option %q. Valid template default email options are %q.",
 		k, period, validValues))
 	return
 }
@@ -2038,23 +1813,6 @@ func validateCognitoRoleMappingsRulesConfiguration(v map[string]interface{}) (er
 	return
 }
 
-func validateCognitoRoleMappingsAmbiguousRoleResolution(v interface{}, k string) (ws []string, errors []error) {
-	validValues := []string{
-		cognitoidentity.AmbiguousRoleResolutionTypeAuthenticatedRole,
-		cognitoidentity.AmbiguousRoleResolutionTypeDeny,
-	}
-	value := v.(string)
-	for _, s := range validValues {
-		if value == s {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid value %q. Valid values are %q.",
-		k, value, validValues))
-	return
-}
-
 func validateCognitoRoleMappingsRulesClaim(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -2062,55 +1820,6 @@ func validateCognitoRoleMappingsRulesClaim(v interface{}, k string) (ws []string
 		errors = append(errors, fmt.Errorf("%q must contain only alphanumeric characters, dots, underscores, colons, slashes and hyphens", k))
 	}
 
-	return
-}
-
-func validateCognitoRoleMappingsRulesMatchType(v interface{}, k string) (ws []string, errors []error) {
-	validValues := []string{
-		cognitoidentity.MappingRuleMatchTypeEquals,
-		cognitoidentity.MappingRuleMatchTypeContains,
-		cognitoidentity.MappingRuleMatchTypeStartsWith,
-		cognitoidentity.MappingRuleMatchTypeNotEqual,
-	}
-	value := v.(string)
-	for _, s := range validValues {
-		if value == s {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid value %q. Valid values are %q.",
-		k, value, validValues))
-	return
-}
-
-func validateCognitoRoleMappingsRulesValue(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) < 1 {
-		errors = append(errors, fmt.Errorf("%q cannot be less than 1 character", k))
-	}
-
-	if len(value) > 128 {
-		errors = append(errors, fmt.Errorf("%q cannot be longer than 1 characters", k))
-	}
-
-	return
-}
-
-func validateCognitoRoleMappingsType(v interface{}, k string) (ws []string, errors []error) {
-	validValues := []string{
-		cognitoidentity.RoleMappingTypeToken,
-		cognitoidentity.RoleMappingTypeRules,
-	}
-	value := v.(string)
-	for _, s := range validValues {
-		if value == s {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf(
-		"%q contains an invalid value %q. Valid values are %q.",
-		k, value, validValues))
 	return
 }
 
