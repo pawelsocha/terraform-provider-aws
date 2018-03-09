@@ -2,10 +2,18 @@ SWEEP?=us-east-1,us-west-2
 TEST?=./...
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 
+REPO_URI ?= github.com/terraform-providers
+REPO_PATH ?= $(REPO_URI)/terraform-provider-aws
+
 default: build
 
 build: fmtcheck
-	go install
+	@echo "Preapre GOPATH"
+	test -h gopath/src/$(REPO_PATH) || \
+		( mkdir -p gopath/src/$(REPO_URI); \
+		ln -s ../../../.. gopath/src/$(REPO_PATH) ); \
+	export GOPATH="$(PWD)/gopath"; export GOBIN="$(PWD)/gopath/bin/"; \
+	cd gopath/src/$(REPO_PATH); go install
 
 sweep:
 	@echo "WARNING: This will destroy infrastructure. Use only in development accounts."
