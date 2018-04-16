@@ -14,11 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/configservice"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/gamelift"
-	"github.com/aws/aws-sdk-go/service/guardduty"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/waf"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/structure"
 	"github.com/hashicorp/terraform/helper/validation"
@@ -29,16 +27,6 @@ import (
 func validateRFC3339TimeString(v interface{}, k string) (ws []string, errors []error) {
 	if _, err := time.Parse(time.RFC3339, v.(string)); err != nil {
 		errors = append(errors, fmt.Errorf("%q: %s", k, err))
-	}
-	return
-}
-
-func validateInstanceUserDataSize(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	length := len(value)
-
-	if length > 16384 {
-		errors = append(errors, fmt.Errorf("%q is %d bytes, cannot be longer than 16384 bytes", k, length))
 	}
 	return
 }
@@ -81,21 +69,12 @@ func validateRdsIdentifierPrefix(v interface{}, k string) (ws []string, errors [
 	return
 }
 
-func validateRdsEngine(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-
-	validTypes := map[string]bool{
-		"aurora":            true,
-		"aurora-mysql":      true,
-		"aurora-postgresql": true,
-	}
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid engine type %q. Valid types are either %q, %q or %q.",
-			k, value, "aurora", "aurora-mysql", "aurora-postgresql"))
-	}
-	return
+func validateRdsEngine() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"aurora",
+		"aurora-mysql",
+		"aurora-postgresql",
+	}, false)
 }
 
 func validateElastiCacheClusterId(v interface{}, k string) (ws []string, errors []error) {
@@ -188,25 +167,6 @@ func validateDbParamGroupNamePrefix(v interface{}, k string) (ws []string, error
 		errors = append(errors, fmt.Errorf(
 			"%q cannot be greater than 226 characters", k))
 	}
-	return
-}
-
-func validateDynamoAttributeType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validTypes := []string{
-		dynamodb.ScalarAttributeTypeB,
-		dynamodb.ScalarAttributeTypeN,
-		dynamodb.ScalarAttributeTypeS,
-	}
-
-	for _, t := range validTypes {
-		if t == value {
-			return
-		}
-	}
-
-	errors = append(errors, fmt.Errorf("%q must be a valid DynamoDB attribute type", k))
-
 	return
 }
 
@@ -581,91 +541,11 @@ func validateS3BucketLifecycleTimestamp(v interface{}, k string) (ws []string, e
 	return
 }
 
-func validateS3BucketLifecycleExpirationDays(v interface{}, k string) (ws []string, errors []error) {
-	if v.(int) <= 0 {
-		errors = append(errors, fmt.Errorf(
-			"%q must be greater than 0", k))
-	}
-
-	return
-}
-
-func validateS3BucketLifecycleTransitionDays(v interface{}, k string) (ws []string, errors []error) {
-	if v.(int) < 0 {
-		errors = append(errors, fmt.Errorf(
-			"%q must be greater than 0", k))
-	}
-
-	return
-}
-
-func validateS3BucketLifecycleStorageClass(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != s3.TransitionStorageClassStandardIa && value != s3.TransitionStorageClassGlacier {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of '%q', '%q'", k, s3.TransitionStorageClassStandardIa, s3.TransitionStorageClassGlacier))
-	}
-
-	return
-}
-
-func validateS3BucketReplicationRuleId(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be longer than 255 characters: %q", k, value))
-	}
-
-	return
-}
-
-func validateS3BucketReplicationRulePrefix(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 1024 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot be longer than 1024 characters: %q", k, value))
-	}
-
-	return
-}
-
-func validateS3BucketServerSideEncryptionAlgorithm(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != s3.ServerSideEncryptionAes256 && value != s3.ServerSideEncryptionAwsKms {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of %q or %q", k, s3.ServerSideEncryptionAwsKms, s3.ServerSideEncryptionAes256))
-	}
-
-	return
-}
-
-func validateS3BucketReplicationDestinationStorageClass(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != s3.StorageClassStandard && value != s3.StorageClassStandardIa && value != s3.StorageClassReducedRedundancy {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of '%q', '%q' or '%q'", k, s3.StorageClassStandard, s3.StorageClassStandardIa, s3.StorageClassReducedRedundancy))
-	}
-
-	return
-}
-
-func validateS3BucketReplicationRuleStatus(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if value != s3.ReplicationRuleStatusEnabled && value != s3.ReplicationRuleStatusDisabled {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of '%q' or '%q'", k, s3.ReplicationRuleStatusEnabled, s3.ReplicationRuleStatusDisabled))
-	}
-
-	return
-}
-
-func validateS3BucketLifecycleRuleId(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 255 {
-		errors = append(errors, fmt.Errorf(
-			"%q cannot exceed 255 characters", k))
-	}
-	return
+func validateS3BucketLifecycleStorageClass() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		s3.TransitionStorageClassStandardIa,
+		s3.TransitionStorageClassGlacier,
+	}, false)
 }
 
 func validateDbEventSubscriptionName(v interface{}, k string) (ws []string, errors []error) {
@@ -771,36 +651,6 @@ func validateSQSFifoQueueName(v interface{}, k string) (errors []error) {
 	return
 }
 
-func validateSNSSubscriptionProtocol(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-	forbidden := []string{"email"}
-	for _, f := range forbidden {
-		if strings.Contains(value, f) {
-			errors = append(
-				errors,
-				fmt.Errorf("Unsupported protocol (%s) for SNS Topic", value),
-			)
-		}
-	}
-	return
-}
-
-func validateSecurityRuleType(v interface{}, k string) (ws []string, errors []error) {
-	value := strings.ToLower(v.(string))
-
-	validTypes := map[string]bool{
-		"ingress": true,
-		"egress":  true,
-	}
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q contains an invalid Security Group Rule type %q. Valid types are either %q or %q.",
-			k, value, "ingress", "egress"))
-	}
-	return
-}
-
 func validateOnceAWeekWindowFormat(v interface{}, k string) (ws []string, errors []error) {
 	// valid time format is "ddd:hh24:mi"
 	validTimeFormat := "(sun|mon|tue|wed|thu|fri|sat):([0-1][0-9]|2[0-3]):([0-5][0-9])"
@@ -823,32 +673,6 @@ func validateOnceADayWindowFormat(v interface{}, k string) (ws []string, errors 
 	if !regexp.MustCompile(validTimeFormatConsolidated).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"%q must satisfy the format of \"hh24:mi-hh24:mi\".", k))
-	}
-	return
-}
-
-func validateRoute53RecordType(v interface{}, k string) (ws []string, errors []error) {
-	// Valid Record types
-	// SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA
-	validTypes := map[string]struct{}{
-		"SOA":   {},
-		"A":     {},
-		"TXT":   {},
-		"NS":    {},
-		"CNAME": {},
-		"MX":    {},
-		"NAPTR": {},
-		"PTR":   {},
-		"SRV":   {},
-		"SPF":   {},
-		"AAAA":  {},
-		"CAA":   {},
-	}
-
-	value := v.(string)
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of [SOA, A, TXT, NS, CNAME, MX, NAPTR, PTR, SRV, SPF, AAAA, CAA]", k))
 	}
 	return
 }
@@ -907,36 +731,12 @@ func validateAwsEcsPlacementStrategy(stratType, stratField string) error {
 	return nil
 }
 
-func validateAwsEmrEbsVolumeType(v interface{}, k string) (ws []string, errors []error) {
-	validTypes := map[string]struct{}{
-		"gp2":      {},
-		"io1":      {},
-		"standard": {},
-	}
-
-	value := v.(string)
-
-	if _, ok := validTypes[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of ['gp2', 'io1', 'standard']", k))
-	}
-	return
-}
-
-func validateAwsEmrInstanceGroupRole(v interface{}, k string) (ws []string, errors []error) {
-	validRoles := map[string]struct{}{
-		"MASTER": {},
-		"CORE":   {},
-		"TASK":   {},
-	}
-
-	value := v.(string)
-
-	if _, ok := validRoles[value]; !ok {
-		errors = append(errors, fmt.Errorf(
-			"%q must be one of ['MASTER', 'CORE', 'TASK']", k))
-	}
-	return
+func validateAwsEmrEbsVolumeType() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		"gp2",
+		"io1",
+		"standard",
+	}, false)
 }
 
 func validateAwsEmrCustomAmiId(v interface{}, k string) (ws []string, errors []error) {
@@ -950,23 +750,6 @@ func validateAwsEmrCustomAmiId(v interface{}, k string) (ws []string, errors []e
 			"%q must begin with 'ami-' and be comprised of only [a-z0-9]: %v", k, value))
 	}
 
-	return
-}
-
-func validateSfnActivityName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 80 {
-		errors = append(errors, fmt.Errorf("%q cannot be longer than 80 characters", k))
-	}
-
-	return
-}
-
-func validateSfnStateMachineDefinition(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 1048576 {
-		errors = append(errors, fmt.Errorf("%q cannot be longer than 1048576 characters", k))
-	}
 	return
 }
 
@@ -1223,22 +1006,6 @@ func validateDbOptionGroupNamePrefix(v interface{}, k string) (ws []string, erro
 	return
 }
 
-func validateAwsLbTargetGroupName(v interface{}, k string) (ws []string, errors []error) {
-	name := v.(string)
-	if len(name) > 32 {
-		errors = append(errors, fmt.Errorf("%q (%q) cannot be longer than '32' characters", k, name))
-	}
-	return
-}
-
-func validateAwsLbTargetGroupNamePrefix(v interface{}, k string) (ws []string, errors []error) {
-	name := v.(string)
-	if len(name) > 6 {
-		errors = append(errors, fmt.Errorf("%q (%q) cannot be longer than '6' characters", k, name))
-	}
-	return
-}
-
 func validateOpenIdURL(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 	u, err := url.Parse(value)
@@ -1261,6 +1028,20 @@ func validateAwsKmsName(v interface{}, k string) (ws []string, es []error) {
 		es = append(es, fmt.Errorf(
 			"%q must begin with 'alias/' and be comprised of only [a-zA-Z0-9:/_-]", k))
 	}
+	return
+}
+
+func validateAwsKmsGrantName(v interface{}, k string) (ws []string, es []error) {
+	value := v.(string)
+
+	if len(value) > 256 {
+		es = append(es, fmt.Errorf("%s can not be greater than 256 characters", k))
+	}
+
+	if !regexp.MustCompile(`^[a-zA-Z0-9:/_-]+$`).MatchString(value) {
+		es = append(es, fmt.Errorf("%s must only contain [a-zA-Z0-9:/_-]", k))
+	}
+
 	return
 }
 
@@ -1464,8 +1245,8 @@ func validateCognitoUserPoolTemplateEmailMessageByLink(v interface{}, k string) 
 		es = append(es, fmt.Errorf("%q cannot be less than 1 character", k))
 	}
 
-	if len(value) > 140 {
-		es = append(es, fmt.Errorf("%q cannot be longer than 140 characters", k))
+	if len(value) > 20000 {
+		es = append(es, fmt.Errorf("%q cannot be longer than 20000 characters", k))
 	}
 
 	if !regexp.MustCompile(`[\p{L}\p{M}\p{S}\p{N}\p{P}\s*]*\{##[\p{L}\p{M}\p{S}\p{N}\p{P}\s*]*##\}[\p{L}\p{M}\p{S}\p{N}\p{P}\s*]*`).MatchString(value) {
@@ -1614,6 +1395,18 @@ func validateWafMetricName(v interface{}, k string) (ws []string, errors []error
 	return
 }
 
+func validateWafPredicatesType() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{
+		waf.PredicateTypeByteMatch,
+		waf.PredicateTypeGeoMatch,
+		waf.PredicateTypeIpmatch,
+		waf.PredicateTypeRegexMatch,
+		waf.PredicateTypeSizeConstraint,
+		waf.PredicateTypeSqlInjectionMatch,
+		waf.PredicateTypeXssMatch,
+	}, false)
+}
+
 func validateIamRoleDescription(v interface{}, k string) (ws []string, errors []error) {
 	value := v.(string)
 
@@ -1639,20 +1432,6 @@ func validateAwsSSMName(v interface{}, k string) (ws []string, errors []error) {
 			k, value))
 	}
 
-	return
-}
-
-func validateSsmParameterType(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	types := map[string]bool{
-		"String":       true,
-		"StringList":   true,
-		"SecureString": true,
-	}
-
-	if !types[value] {
-		errors = append(errors, fmt.Errorf("Parameter type %s is invalid. Valid types are String, StringList or SecureString", value))
-	}
 	return
 }
 
@@ -1735,55 +1514,6 @@ func validateIoTTopicRuleElasticSearchEndpoint(v interface{}, k string) (ws []st
 	return
 }
 
-func validateServiceCatalogPortfolioName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if (len(value) > 20) || (len(value) == 0) {
-		errors = append(errors, fmt.Errorf("Service catalog name must be between 1 and 20 characters."))
-	}
-	return
-}
-
-func validateServiceCatalogPortfolioDescription(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 2000 {
-		errors = append(errors, fmt.Errorf("Service catalog description must be less than 2000 characters."))
-	}
-	return
-}
-
-func validateServiceCatalogPortfolioProviderName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if (len(value) > 20) || (len(value) == 0) {
-		errors = append(errors, fmt.Errorf("Service catalog provider name must be between 1 and 20 characters."))
-	}
-	return
-}
-
-func validateSesTemplateName(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if (len(value) > 64) || (len(value) == 0) {
-		errors = append(errors, fmt.Errorf("SES template name must be between 1 and 64 characters."))
-	}
-	return
-}
-
-func validateSesTemplateHtml(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 512000 {
-		errors = append(errors, fmt.Errorf("SES template must be less than 500KB in size, including both the text and HTML parts."))
-	}
-	return
-}
-
-func validateSesTemplateText(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	if len(value) > 512000 {
-		errors = append(errors, fmt.Errorf("SES template must be less than 500KB in size, including both the text and HTML parts."))
-	}
-
-	return
-}
-
 func validateCognitoRoleMappingsAmbiguousRoleResolutionAgainstType(v map[string]interface{}) (errors []error) {
 	t := v["type"].(string)
 	isRequired := t == cognitoidentity.RoleMappingTypeToken || t == cognitoidentity.RoleMappingTypeRules
@@ -1844,22 +1574,8 @@ func validateCognitoUserPoolDomain(v interface{}, k string) (ws []string, errors
 	return
 }
 
-func validateDxConnectionBandWidth(v interface{}, k string) (ws []string, errors []error) {
-	val, ok := v.(string)
-	if !ok {
-		errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
-		return
-	}
-
-	validBandWidth := []string{"1Gbps", "10Gbps"}
-	for _, str := range validBandWidth {
-		if val == str {
-			return
-		}
-	}
-
-	errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validBandWidth, val))
-	return
+func validateDxConnectionBandWidth() schema.SchemaValidateFunc {
+	return validation.StringInSlice([]string{"1Gbps", "10Gbps"}, false)
 }
 
 func validateKmsKey(v interface{}, k string) (ws []string, errors []error) {
@@ -1888,57 +1604,6 @@ func validateAwsElastiCacheReplicationGroupAuthToken(v interface{}, k string) (w
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters or symbols (excluding @, \", and /) allowed in %q", k))
 	}
-	return
-}
-
-func validateGameliftOperatingSystem(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	operatingSystems := map[string]bool{
-		gamelift.OperatingSystemAmazonLinux: true,
-		gamelift.OperatingSystemWindows2012: true,
-	}
-
-	if !operatingSystems[value] {
-		errors = append(errors, fmt.Errorf("%q must be a valid operating system value: %q", k, value))
-	}
-	return
-}
-
-func validateGuardDutyIpsetFormat(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validType := []string{
-		guardduty.IpSetFormatTxt,
-		guardduty.IpSetFormatStix,
-		guardduty.IpSetFormatOtxCsv,
-		guardduty.IpSetFormatAlienVault,
-		guardduty.IpSetFormatProofPoint,
-		guardduty.IpSetFormatFireEye,
-	}
-	for _, str := range validType {
-		if value == str {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validType, value))
-	return
-}
-
-func validateGuardDutyThreatIntelSetFormat(v interface{}, k string) (ws []string, errors []error) {
-	value := v.(string)
-	validType := []string{
-		guardduty.ThreatIntelSetFormatTxt,
-		guardduty.ThreatIntelSetFormatStix,
-		guardduty.ThreatIntelSetFormatOtxCsv,
-		guardduty.ThreatIntelSetFormatAlienVault,
-		guardduty.ThreatIntelSetFormatProofPoint,
-		guardduty.ThreatIntelSetFormatFireEye,
-	}
-	for _, str := range validType {
-		if value == str {
-			return
-		}
-	}
-	errors = append(errors, fmt.Errorf("expected %s to be one of %v, got %s", k, validType, value))
 	return
 }
 
@@ -2023,6 +1688,70 @@ func validateIotThingTypeSearchableAttribute(v interface{}, k string) (ws []stri
 	if !regexp.MustCompile(`[a-zA-Z0-9_.,@/:#-]+`).MatchString(value) {
 		errors = append(errors, fmt.Errorf(
 			"only alphanumeric characters, underscores, dots, commas, arobases, slashes, colons, hashes and hyphens allowed in %q", k))
+	}
+	return
+}
+
+func validateDynamoDbTableAttributes(d *schema.ResourceDiff) error {
+	// Collect all indexed attributes
+	primaryHashKey := d.Get("hash_key").(string)
+	indexedAttributes := map[string]bool{
+		primaryHashKey: true,
+	}
+	if v, ok := d.GetOk("range_key"); ok {
+		indexedAttributes[v.(string)] = true
+	}
+	if v, ok := d.GetOk("local_secondary_index"); ok {
+		indexes := v.(*schema.Set).List()
+		for _, idx := range indexes {
+			index := idx.(map[string]interface{})
+			rangeKey := index["range_key"].(string)
+			indexedAttributes[rangeKey] = true
+		}
+	}
+	if v, ok := d.GetOk("global_secondary_index"); ok {
+		indexes := v.(*schema.Set).List()
+		for _, idx := range indexes {
+			index := idx.(map[string]interface{})
+
+			hashKey := index["hash_key"].(string)
+			indexedAttributes[hashKey] = true
+
+			if rk, ok := index["range_key"]; ok {
+				indexedAttributes[rk.(string)] = true
+			}
+		}
+	}
+
+	// Check if all indexed attributes have an attribute definition
+	attributes := d.Get("attribute").(*schema.Set).List()
+	missingAttrDefs := []string{}
+	for _, attr := range attributes {
+		attribute := attr.(map[string]interface{})
+		attrName := attribute["name"].(string)
+
+		if _, ok := indexedAttributes[attrName]; !ok {
+			missingAttrDefs = append(missingAttrDefs, attrName)
+		}
+	}
+
+	if len(missingAttrDefs) > 0 {
+		return fmt.Errorf("All attributes must be indexed. Unused attributes: %q", missingAttrDefs)
+	}
+
+	return nil
+}
+
+func validateLaunchTemplateName(v interface{}, k string) (ws []string, errors []error) {
+	value := v.(string)
+	if len(value) < 3 {
+		errors = append(errors, fmt.Errorf("%q cannot be less than 3 characters", k))
+	} else if strings.HasSuffix(k, "prefix") && len(value) > 99 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 99 characters, name is limited to 125", k))
+	} else if !strings.HasSuffix(k, "prefix") && len(value) > 125 {
+		errors = append(errors, fmt.Errorf("%q cannot be longer than 125 characters", k))
+	} else if !regexp.MustCompile(`^[0-9a-zA-Z()./_]+$`).MatchString(value) {
+		errors = append(errors, fmt.Errorf("%q can only alphanumeric characters and ()./_ symbols", k))
 	}
 	return
 }

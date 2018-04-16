@@ -61,6 +61,10 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							Optional: true,
 							Default:  86400,
 						},
+						"field_level_encryption_id": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 						"forwarded_values": {
 							Type:     schema.TypeSet,
 							Required: true,
@@ -211,6 +215,10 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							Type:     schema.TypeInt,
 							Optional: true,
 							Default:  86400,
+						},
+						"field_level_encryption_id": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 						"forwarded_values": {
 							Type:     schema.TypeSet,
@@ -386,8 +394,9 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							},
 						},
 						"domain_name": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.NoZeroValues,
 						},
 						"custom_header": {
 							Type:     schema.TypeSet,
@@ -407,8 +416,9 @@ func resourceAwsCloudFrontDistribution() *schema.Resource {
 							},
 						},
 						"origin_id": {
-							Type:     schema.TypeString,
-							Required: true,
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.NoZeroValues,
 						},
 						"origin_path": {
 							Type:     schema.TypeString,
