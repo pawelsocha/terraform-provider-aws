@@ -161,9 +161,11 @@ func Provider() terraform.ResourceProvider {
 
 		DataSourcesMap: map[string]*schema.Resource{
 			"aws_acm_certificate":                  dataSourceAwsAcmCertificate(),
+			"aws_acmpca_certificate_authority":     dataSourceAwsAcmpcaCertificateAuthority(),
 			"aws_ami":                              dataSourceAwsAmi(),
 			"aws_ami_ids":                          dataSourceAwsAmiIds(),
 			"aws_api_gateway_rest_api":             dataSourceAwsApiGatewayRestApi(),
+			"aws_arn":                              dataSourceAwsArn(),
 			"aws_autoscaling_groups":               dataSourceAwsAutoscalingGroups(),
 			"aws_availability_zone":                dataSourceAwsAvailabilityZone(),
 			"aws_availability_zones":               dataSourceAwsAvailabilityZones(),
@@ -186,10 +188,12 @@ func Provider() terraform.ResourceProvider {
 			"aws_ecr_repository":                   dataSourceAwsEcrRepository(),
 			"aws_ecs_cluster":                      dataSourceAwsEcsCluster(),
 			"aws_ecs_container_definition":         dataSourceAwsEcsContainerDefinition(),
+			"aws_ecs_service":                      dataSourceAwsEcsService(),
 			"aws_ecs_task_definition":              dataSourceAwsEcsTaskDefinition(),
 			"aws_efs_file_system":                  dataSourceAwsEfsFileSystem(),
 			"aws_efs_mount_target":                 dataSourceAwsEfsMountTarget(),
 			"aws_eip":                              dataSourceAwsEip(),
+			"aws_eks_cluster":                      dataSourceAwsEksCluster(),
 			"aws_elastic_beanstalk_hosted_zone":    dataSourceAwsElasticBeanstalkHostedZone(),
 			"aws_elastic_beanstalk_solution_stack": dataSourceAwsElasticBeanstalkSolutionStack(),
 			"aws_elasticache_cluster":              dataSourceAwsElastiCacheCluster(),
@@ -197,6 +201,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_elasticache_replication_group":    dataSourceAwsElasticacheReplicationGroup(),
 			"aws_elb_hosted_zone_id":               dataSourceAwsElbHostedZoneId(),
 			"aws_elb_service_account":              dataSourceAwsElbServiceAccount(),
+			"aws_glue_script":                      dataSourceAwsGlueScript(),
 			"aws_iam_account_alias":                dataSourceAwsIamAccountAlias(),
 			"aws_iam_group":                        dataSourceAwsIAMGroup(),
 			"aws_iam_instance_profile":             dataSourceAwsIAMInstanceProfile(),
@@ -217,6 +222,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_kms_key":                          dataSourceAwsKmsKey(),
 			"aws_kms_secret":                       dataSourceAwsKmsSecret(),
 			"aws_lambda_function":                  dataSourceAwsLambdaFunction(),
+			"aws_lambda_invocation":                dataSourceAwsLambdaInvocation(),
+			"aws_mq_broker":                        dataSourceAwsMqBroker(),
 			"aws_nat_gateway":                      dataSourceAwsNatGateway(),
 			"aws_network_interface":                dataSourceAwsNetworkInterface(),
 			"aws_partition":                        dataSourceAwsPartition(),
@@ -225,6 +232,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_redshift_cluster":                 dataSourceAwsRedshiftCluster(),
 			"aws_redshift_service_account":         dataSourceAwsRedshiftServiceAccount(),
 			"aws_region":                           dataSourceAwsRegion(),
+			"aws_route":                            dataSourceAwsRoute(),
 			"aws_route_table":                      dataSourceAwsRouteTable(),
 			"aws_route53_zone":                     dataSourceAwsRoute53Zone(),
 			"aws_s3_bucket":                        dataSourceAwsS3Bucket(),
@@ -255,6 +263,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_acm_certificate":                          resourceAwsAcmCertificate(),
 			"aws_acm_certificate_validation":               resourceAwsAcmCertificateValidation(),
+			"aws_acmpca_certificate_authority":             resourceAwsAcmpcaCertificateAuthority(),
 			"aws_ami":                                      resourceAwsAmi(),
 			"aws_ami_copy":                                 resourceAwsAmiCopy(),
 			"aws_ami_from_instance":                        resourceAwsAmiFromInstance(),
@@ -296,6 +305,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_notification":                 resourceAwsAutoscalingNotification(),
 			"aws_autoscaling_policy":                       resourceAwsAutoscalingPolicy(),
 			"aws_autoscaling_schedule":                     resourceAwsAutoscalingSchedule(),
+			"aws_budgets_budget":                           resourceAwsBudgetsBudget(),
 			"aws_cloud9_environment_ec2":                   resourceAwsCloud9EnvironmentEc2(),
 			"aws_cloudformation_stack":                     resourceAwsCloudFormationStack(),
 			"aws_cloudfront_distribution":                  resourceAwsCloudFrontDistribution(),
@@ -311,7 +321,9 @@ func Provider() terraform.ResourceProvider {
 			"aws_cloudwatch_log_resource_policy":           resourceAwsCloudWatchLogResourcePolicy(),
 			"aws_cloudwatch_log_stream":                    resourceAwsCloudWatchLogStream(),
 			"aws_cloudwatch_log_subscription_filter":       resourceAwsCloudwatchLogSubscriptionFilter(),
+			"aws_config_aggregate_authorization":           resourceAwsConfigAggregateAuthorization(),
 			"aws_config_config_rule":                       resourceAwsConfigConfigRule(),
+			"aws_config_configuration_aggregator":          resourceAwsConfigConfigurationAggregator(),
 			"aws_config_configuration_recorder":            resourceAwsConfigConfigurationRecorder(),
 			"aws_config_configuration_recorder_status":     resourceAwsConfigConfigurationRecorderStatus(),
 			"aws_config_delivery_channel":                  resourceAwsConfigDeliveryChannel(),
@@ -322,6 +334,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_cognito_user_pool":                        resourceAwsCognitoUserPool(),
 			"aws_cognito_user_pool_client":                 resourceAwsCognitoUserPoolClient(),
 			"aws_cognito_user_pool_domain":                 resourceAwsCognitoUserPoolDomain(),
+			"aws_cognito_resource_server":                  resourceAwsCognitoResourceServer(),
 			"aws_cloudwatch_metric_alarm":                  resourceAwsCloudWatchMetricAlarm(),
 			"aws_cloudwatch_dashboard":                     resourceAwsCloudWatchDashboard(),
 			"aws_codedeploy_app":                           resourceAwsCodeDeployApp(),
@@ -330,6 +343,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_codecommit_repository":                    resourceAwsCodeCommitRepository(),
 			"aws_codecommit_trigger":                       resourceAwsCodeCommitTrigger(),
 			"aws_codebuild_project":                        resourceAwsCodeBuildProject(),
+			"aws_codebuild_webhook":                        resourceAwsCodeBuildWebhook(),
 			"aws_codepipeline":                             resourceAwsCodePipeline(),
 			"aws_customer_gateway":                         resourceAwsCustomerGateway(),
 			"aws_dax_cluster":                              resourceAwsDaxCluster(),
@@ -369,6 +383,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_egress_only_internet_gateway":             resourceAwsEgressOnlyInternetGateway(),
 			"aws_eip":                                      resourceAwsEip(),
 			"aws_eip_association":                          resourceAwsEipAssociation(),
+			"aws_eks_cluster":                              resourceAwsEksCluster(),
 			"aws_elasticache_cluster":                      resourceAwsElasticacheCluster(),
 			"aws_elasticache_parameter_group":              resourceAwsElasticacheParameterGroup(),
 			"aws_elasticache_replication_group":            resourceAwsElasticacheReplicationGroup(),
@@ -393,8 +408,11 @@ func Provider() terraform.ResourceProvider {
 			"aws_gamelift_fleet":                           resourceAwsGameliftFleet(),
 			"aws_glacier_vault":                            resourceAwsGlacierVault(),
 			"aws_glue_catalog_database":                    resourceAwsGlueCatalogDatabase(),
+			"aws_glue_catalog_table":                       resourceAwsGlueCatalogTable(),
+			"aws_glue_classifier":                          resourceAwsGlueClassifier(),
 			"aws_glue_connection":                          resourceAwsGlueConnection(),
 			"aws_glue_job":                                 resourceAwsGlueJob(),
+			"aws_glue_trigger":                             resourceAwsGlueTrigger(),
 			"aws_guardduty_detector":                       resourceAwsGuardDutyDetector(),
 			"aws_guardduty_ipset":                          resourceAwsGuardDutyIpset(),
 			"aws_guardduty_member":                         resourceAwsGuardDutyMember(),
@@ -416,6 +434,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_saml_provider":                        resourceAwsIamSamlProvider(),
 			"aws_iam_server_certificate":                   resourceAwsIAMServerCertificate(),
 			"aws_iam_service_linked_role":                  resourceAwsIamServiceLinkedRole(),
+			"aws_iam_user_group_membership":                resourceAwsIamUserGroupMembership(),
 			"aws_iam_user_policy_attachment":               resourceAwsIamUserPolicyAttachment(),
 			"aws_iam_user_policy":                          resourceAwsIamUserPolicy(),
 			"aws_iam_user_ssh_key":                         resourceAwsIamUserSshKey(),
@@ -547,6 +566,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_sqs_queue_policy":                         resourceAwsSqsQueuePolicy(),
 			"aws_snapshot_create_volume_permission":        resourceAwsSnapshotCreateVolumePermission(),
 			"aws_sns_platform_application":                 resourceAwsSnsPlatformApplication(),
+			"aws_sns_sms_preferences":                      resourceAwsSnsSmsPreferences(),
 			"aws_sns_topic":                                resourceAwsSnsTopic(),
 			"aws_sns_topic_policy":                         resourceAwsSnsTopicPolicy(),
 			"aws_sns_topic_subscription":                   resourceAwsSnsTopicSubscription(),
@@ -560,6 +580,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc_dhcp_options":                         resourceAwsVpcDhcpOptions(),
 			"aws_vpc_peering_connection":                   resourceAwsVpcPeeringConnection(),
 			"aws_vpc_peering_connection_accepter":          resourceAwsVpcPeeringConnectionAccepter(),
+			"aws_vpc_peering_connection_options":           resourceAwsVpcPeeringConnectionOptions(),
 			"aws_default_vpc":                              resourceAwsDefaultVpc(),
 			"aws_vpc":                                      resourceAwsVpc(),
 			"aws_vpc_endpoint":                             resourceAwsVpcEndpoint(),
@@ -675,6 +696,8 @@ func init() {
 
 		"ec2_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
+		"efs_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
 		"elb_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"es_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
@@ -686,6 +709,8 @@ func init() {
 		"sns_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"sqs_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
+
+		"ssm_endpoint": "Use this to override the default endpoint URL constructed from the `region`.\n",
 
 		"insecure": "Explicitly allow the provider to perform \"insecure\" SSL requests. If omitted," +
 			"default value is `false`",
@@ -780,6 +805,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.Ec2Endpoint = endpoints["ec2"].(string)
 		config.EcrEndpoint = endpoints["ecr"].(string)
 		config.EcsEndpoint = endpoints["ecs"].(string)
+		config.EfsEndpoint = endpoints["efs"].(string)
 		config.ElbEndpoint = endpoints["elb"].(string)
 		config.EsEndpoint = endpoints["es"].(string)
 		config.IamEndpoint = endpoints["iam"].(string)
@@ -792,6 +818,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		config.SnsEndpoint = endpoints["sns"].(string)
 		config.SqsEndpoint = endpoints["sqs"].(string)
 		config.StsEndpoint = endpoints["sts"].(string)
+		config.SsmEndpoint = endpoints["ssm"].(string)
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
@@ -925,6 +952,13 @@ func endpointsSchema() *schema.Schema {
 					Description: descriptions["ecs_endpoint"],
 				},
 
+				"efs": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["efs_endpoint"],
+				},
+
 				"elb": {
 					Type:        schema.TypeString,
 					Optional:    true,
@@ -991,6 +1025,12 @@ func endpointsSchema() *schema.Schema {
 					Default:     "",
 					Description: descriptions["sts_endpoint"],
 				},
+				"ssm": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Default:     "",
+					Description: descriptions["ssm_endpoint"],
+				},
 			},
 		},
 		Set: endpointsToHash,
@@ -1009,6 +1049,7 @@ func endpointsToHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["dynamodb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["iam"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["ec2"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["efs"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["elb"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["kinesis"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["kms"].(string)))

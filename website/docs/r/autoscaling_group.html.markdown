@@ -222,7 +222,7 @@ The `launch_template` block supports the following:
 
 ## Attributes Reference
 
-The following attributes are exported:
+In addition to all arguments above, the following attributes are exported:
 
 * `id` - The autoscaling group id.
 * `arn` - The ARN for this AutoScaling Group
@@ -300,7 +300,7 @@ Setting `wait_for_capacity_timeout` to `"0"` disables ASG Capacity waiting.
 #### Waiting for ELB Capacity
 
 The second mechanism is optional, and affects ASGs with attached ELBs specified
-via the `load_balancers` attribute.
+via the `load_balancers` attribute or with ALBs specified with `target_group_arns`.
 
 The `min_elb_capacity` parameter causes Terraform to wait for at least the
 requested number of instances to show up `"InService"` in all attached ELBs
